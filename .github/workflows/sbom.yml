@@ -13,7 +13,7 @@ jobs:
         run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
 
       - name: Generate SBOM
-        run: syft . -o spdx-json > sbom.json
+        run:  SYFT_FORMAT_SPDX_JSON_PRETTY=true SYFT_JAVASCRIPT_INCLUDE_DEV_DEPENDENCIES=true  syft . -o spdx-json > sbom.json
 
       - name: Upload SBOM (Local)
         if: ${{ env.ACT }}
