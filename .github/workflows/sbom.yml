@@ -1,0 +1,28 @@
+name: SBOM Pipeline
+
+on: [push]
+
+jobs:
+  generate-sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Syft
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM
+        run: syft . -o spdx-json > sbom.json
+
+      - name: Upload SBOM (Local)
+        if: ${{ env.ACT }}
+        run: cat sbom.json
+
+      - name: Upload SBOM (GitHub)
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+          retention-days: 30
