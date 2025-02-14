@@ -15,6 +15,12 @@ jobs:
       - name: Generate SBOM
         run:  SYFT_FORMAT_SPDX_JSON_PRETTY=true SYFT_JAVASCRIPT_INCLUDE_DEV_DEPENDENCIES=true  syft . -o spdx-json > sbom.json
 
+      - name: Install Grype
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Scan Vulnerabilities
+        run: grype sbom:sbom.json > vulnerabilities.txt
+
       - name: Upload SBOM (Local)
         if: ${{ env.ACT }}
         run: cat sbom.json
@@ -25,4 +31,12 @@ jobs:
         with:
           name: sbom
           path: sbom.json
+          retention-days: 30
+
+      - name: Upload Vulnerability Report
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerabilities
+          path: vulnerabilities.txt
           retention-days: 30
