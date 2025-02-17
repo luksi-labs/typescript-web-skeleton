@@ -21,7 +21,7 @@ jobs:
       - name: Scan and Sort Vulnerabilities
         run: |
           # Run grype and output results in JSON format
-          grype sbom:sbom.json --output json > vulnerabilities.json
+          grype sbom:sbom.json --output json > vulnerabilities-unsorted.json
           # Use jq to sort the vulnerabilities by severity.
           # This mapping assigns a numeric value to each severity level:
           # Critical: 4, High: 3, Medium: 2, Low: 1, others: 0.
@@ -31,14 +31,9 @@ jobs:
                 elif .vulnerability.severity == "Medium" then 2
                 elif .vulnerability.severity == "Low" then 1
                 else 0 end)
-              ) | .matches |= reverse' vulnerabilities.json > vulnerabilities_sorted.json
+              ) | .matches |= reverse' vulnerabilities-unsorted.json > vulnerabilities.json
 
-      - name: Upload SBOM (Local)
-        if: ${{ env.ACT }}
-        run: cat sbom.json
-
-      - name: Upload SBOM (GitHub)
-        if: ${{ !env.ACT }}
+      - name: Upload SBOM
         uses: actions/upload-artifact@v4
         with:
           name: sbom
@@ -46,9 +41,8 @@ jobs:
           retention-days: 30
 
       - name: Upload Vulnerability Report
-        if: ${{ !env.ACT }}
         uses: actions/upload-artifact@v4
         with:
-          name: vulnerabilities-sorted
-          path: vulnerabilities_sorted.json
+          name: vulnerabilities
+          path: vulnerabilities.json
           retention-days: 30
