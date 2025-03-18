@@ -27,7 +27,7 @@ jobs:
         run: |
           # Build the image while generating an SBOM in SPDX-JSON format.
           # The output flag writes the build results (including the SBOM) to the specified directory.
-          docker buildx build --sbom=spdx-json --output type=local,dest=sbom_output -t my-image:latest .
+          docker buildx build --sbom=true --output type=local,dest=sbom_output -t my-image:latest .
           # Copy the generated SBOM to a file named sbom.json
           cp sbom_output/sbom.spdx.json sbom.json
 
