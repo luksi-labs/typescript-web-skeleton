@@ -1,0 +1,66 @@
+name: SBOM Pipeline with buildx
+
+on: [push]
+
+jobs:
+  generate-sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check if Dockerfile exists
+        id: check_dockerfile
+        run: |
+          if [ -f Dockerfile ]; then
+            echo "dockerfile_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "dockerfile_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Docker Buildx (if Dockerfile exists)
+        if: steps.check_dockerfile.outputs.dockerfile_exists == 'true'
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image with SBOM (if Dockerfile exists)
+        if: steps.check_dockerfile.outputs.dockerfile_exists == 'true'
+        run: |
+          # Build the image while generating an SBOM in SPDX-JSON format.
+          # The output flag writes the build results (including the SBOM) to the specified directory.
+          docker buildx build --sbom=spdx-json --output type=local,dest=sbom_output -t my-image:latest .
+          # Copy the generated SBOM to a file named sbom.json
+          cp sbom_output/sbom.spdx.json sbom.json
+
+      - name: Generate SBOM with Syft (if no Dockerfile)
+        if: steps.check_dockerfile.outputs.dockerfile_exists == 'false'
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          SYFT_FORMAT_SPDX_JSON_PRETTY=true syft . -o spdx-json > sbom.json
+
+      - name: Install Grype
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Scan and Sort Vulnerabilities
+        run: |
+          grype sbom:sbom.json --output json > vulnerabilities-unsorted.json
+          jq '.matches |= sort_by(
+               (if .vulnerability.severity == "Critical" then 4
+                elif .vulnerability.severity == "High" then 3
+                elif .vulnerability.severity == "Medium" then 2
+                elif .vulnerability.severity == "Low" then 1
+                else 0 end)
+              ) | .matches |= reverse' vulnerabilities-unsorted.json > vulnerabilities.json
+
+      - name: Upload SBOM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+          retention-days: 30
+
+      - name: Upload Vulnerability Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerabilities
+          path: vulnerabilities.json
+          retention-days: 30
