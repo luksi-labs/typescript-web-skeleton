@@ -1,4 +1,4 @@
-name: SBOM Pipeline with buildx
+name: SBOM Pipeline
 
 on: [push]
 
@@ -25,11 +25,17 @@ jobs:
       - name: Build Docker image with SBOM (if Dockerfile exists)
         if: steps.check_dockerfile.outputs.dockerfile_exists == 'true'
         run: |
-          # Build the image while generating an SBOM in SPDX-JSON format.
-          # The output flag writes the build results (including the SBOM) to the specified directory.
+          # Build the image with SBOM generation; the SBOM is saved to the "sbom_output" directory.
           docker buildx build --sbom=true --output type=local,dest=sbom_output -t my-image:latest .
-          # Copy the generated SBOM to a file named sbom.json
-          cp sbom_output/sbom.spdx.json sbom.json
+          ls -la sbom_output
+
+      - name: Copy Docker-generated SBOM to workspace
+        if: steps.check_dockerfile.outputs.dockerfile_exists == 'true'
+        run: |
+          # List files in sbom_output to verify the SBOM file's name.
+          ls -la sbom_output
+          # Copy the first JSON file found in sbom_output to sbom.json in the workspace.
+          cp $(find sbom_output -name '*.json' | head -n 1) sbom.json
 
       - name: Generate SBOM with Syft (if no Dockerfile)
         if: steps.check_dockerfile.outputs.dockerfile_exists == 'false'
