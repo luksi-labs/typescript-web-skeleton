@@ -1,4 +1,4 @@
-name: SBOM workflow with Dockerfile and files
+name: SBOM workflow
 
 on:
   push:
