@@ -35,7 +35,8 @@ jobs:
           # List files in sbom_output to verify the SBOM file's name.
           ls -la sbom_output
           # Copy the first JSON file found in sbom_output to sbom.json in the workspace.
-          cp $(find sbom_output -name '*.json' | head -n 1) sbom.json
+          cp sbom_output/sbom.spdx.json sbom.json
+          cat sbom.json
 
       - name: Generate SBOM with Syft (if no Dockerfile)
         if: steps.check_dockerfile.outputs.dockerfile_exists == 'false'
