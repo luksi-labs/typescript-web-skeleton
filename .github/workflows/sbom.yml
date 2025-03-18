@@ -2,7 +2,9 @@ name: SBOM workflow with Dockerfile and files
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
   generate-sbom:
@@ -35,7 +37,7 @@ jobs:
         if: steps.check_dockerfile.outputs.dockerfile_exists == 'true'
         run: SYFT_FORMAT_SPDX_JSON_PRETTY=true syft my-image:latest -o spdx-json > sbom.json
 
-      - name: Generate SBOM from filesystem
+      - name: Generate SBOM from files
         if: steps.check_dockerfile.outputs.dockerfile_exists == 'false'
         run: SYFT_FORMAT_SPDX_JSON_PRETTY=true syft . -o spdx-json > sbom.json
 
